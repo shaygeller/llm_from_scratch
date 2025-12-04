@@ -1,0 +1,30 @@
+# Product Requirement Document: Phase 4 - Deployment & Extras
+
+## 1. Objective
+
+Export the model for "Edge Deployment" (running on consumer laptops/phones) and demonstrate capabilities via a UI.
+
+## 2. Quantization Strategy
+
+### 2.1 Format: GGUF (GPT-Generated Unified Format)
+
+**Why GGUF?** It is a binary format designed for mmap (memory mapping). It allows the model to load instantly and run on CPU+GPU (offloading layers). It is the standard for local AI (llama.cpp, Ollama).
+
+### 2.2 Precision Levels
+
+#### Q8_0 (8-bit)
+- **Use Case:** High-accuracy server deployment
+- **Loss:** < 0.1% perplexity degradation
+
+#### Q4_K_M (4-bit Medium)
+- **Use Case:** Consumer laptops
+- **Why?** Modern quantization (k-quants) groups weights intelligently. 4-bit weights with 6-bit scales retain 99% of the model's reasoning ability while reducing VRAM usage by 50% (from ~2.2GB to ~1.1GB).
+- **Efficiency:** Fits entirely in L1/L2 cache of modern CPUs, making inference extremely fast.
+
+## 3. Demo Application
+
+### 3.1 "Glass Box" UI
+
+**Feature:** The UI must display the Hidden Thoughts (`<|start_thought|>`) and Raw Tool Calls (JSON).
+
+**Why?** For developers and data scientists, seeing how the model failed (e.g., incorrect logic in thought, valid logic but typo in tool call) is infinitely more valuable than just seeing a wrong final answer.

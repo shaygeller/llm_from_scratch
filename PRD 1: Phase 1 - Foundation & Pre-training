@@ -1,0 +1,90 @@
+# Product Requirement Document: Phase 1 - Foundation & Pre-training
+
+## 1. Objective
+
+Build and pre-train a 1.1B parameter Llama-3 style language model from scratch.
+
+**Research Goal:** Demonstrate that a small model can achieve high reasoning capabilities through data quality and annealing, rather than just parameter count.
+
+## 2. Technical Specifications & Rationale
+
+### 2.1 Model Architecture (NanoLlama-1B)
+
+**Type:** Decoder-only Transformer
+
+**Context Window:** 4096 (Base) → 131,072 (Extension)
+
+**Parameters:** ~1.1 Billion
+
+**Layers:** 22
+
+**Hidden Dimension:** 2048
+
+**Attention Heads:** 32 (Query)
+
+**KV Heads:** 4 (Grouped Query Attention)
+- **Why GQA?** 1B models are memory-bandwidth bound. GQA reduces the Key-Value cache size by 8x (32/4), significantly speeding up inference and allowing larger batch sizes during training.
+
+**FFN Dimension:** 5632 (SwiGLU)
+- **Why SwiGLU?** Swish-Gated Linear Units provide a smoother optimization landscape than ReLU, leading to faster convergence (approx. 10-15% better sample efficiency).
+
+**Normalization:** RMSNorm (pre-norm)
+- **Why RMSNorm?** Computationally cheaper than LayerNorm (no mean subtraction) and provides equivalent stability.
+
+**Position Embeddings:** RoPE (Rotary Positional Embeddings)
+- **Base Theta:** 10,000.0
+- **Extension Theta:** 10,000,000.0 (during Annealing)
+- **Why RoPE?** Allows the model to learn relative distances between tokens better than absolute embeddings (APE) or ALiBi, crucial for long contexts.
+
+### 2.2 Infrastructure & Libraries
+
+**Framework:** PyTorch 2.4+ (Nightly)
+
+**Strategy:** `torch.distributed.fsdp` with `FULL_SHARD`
+- **Why FSDP?** Even a 1B model + Optimizer States (AdamW) requires ~16GB VRAM in FP32. FSDP shards these across GPUs, allowing us to fit the model comfortably on consumer hardware or maximize batch size on H100s.
+
+**Precision:** BF16 (BFloat16)
+- **Why BF16?** FP16 has a narrow dynamic range, leading to underflow (loss → 0) or overflow (loss → NaN) with large gradients. BF16 has the same range as FP32, preventing these instabilities.
+
+## 3. Data Strategy (The "Quality First" Approach)
+
+### 3.1 Curriculum Design
+
+#### Phase 1: General Knowledge (0% - 80%)
+- **Data:** FineWeb-Edu (Web data filtered by educational value)
+- **Reasoning:** The model learns grammar, facts, and world structure.
+
+#### Phase 2: Long Context Annealing (80% - 90%)
+- **Data:** PG19 (Books) + The Stack (Code)
+- **Action:** Ramp sequence length 4k → 32k → 128k
+- **Reasoning:** Code and Books require tracking dependencies over thousands of tokens. This forces the attention mechanism to utilize the full context window.
+
+#### Phase 3: Knowledge Crystallization (90% - 100%)
+- **Data:** Only "Gold" sources (Textbooks, Math Papers, StackOverflow)
+- **Reasoning:** By seeing high-quality data when the Learning Rate is decaying, the model "overfits" slightly to high-logic patterns, boosting benchmark scores (MMLU/GSM8K).
+
+### 3.2 Streaming Pipeline
+
+**Features:** On-the-fly tokenization, MinHash Deduplication, Token Packing
+
+**Why Packing?** Without packing, a 100-token document in a 4096-window wastes 3996 tokens of compute (97% waste). Packing fills this space with the next document, maximizing compute/dollar.
+
+## 4. Training Loop Specifications
+
+### 4.1 WSD Scheduler (Warmup-Stable-Decay)
+
+**Warmup:** 2000 steps
+
+**Stable:** Constant Max LR (3e-4) for 80% of training
+
+**Decay:** Linear drop to 0
+
+**Why WSD?**
+- **Flexibility:** You can stop the "Stable" phase anytime and trigger "Decay" to finish training. Cosine schedules lock you into a fixed duration from step 1.
+- **Optimality:** Research shows models trained with a long constant phase and a sharp decay often outperform Cosine models.
+
+### 4.2 Metrics & Stability
+
+**z-loss:** `1e-4 * log(sum(exp(logits)^2))`
+
+**Why?** In large softmax operations, logits can drift to 10^4, causing numerical errors. z-loss encourages logits to stay near 0.

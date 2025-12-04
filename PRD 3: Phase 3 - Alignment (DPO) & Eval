@@ -1,0 +1,39 @@
+# Product Requirement Document: Phase 3 - Alignment (DPO) & Evaluation
+
+## 1. Objective
+
+Align the model to human preferences (Safety, Helpfulness) using Direct Preference Optimization, effectively removing "sycophancy" and "toxicity."
+
+## 2. DPO Specifications
+
+### 2.1 Why DPO over RLHF (PPO)?
+
+**Simplicity:** PPO requires training a Reward Model (RM), then a Value Model, then the Policy Model. It is unstable and hyperparameter-sensitive.
+
+**Math:** DPO mathematically proves that the Reward Model is implicit in the optimal policy. We can optimize the policy directly on the preference data without an explicit reward model.
+
+**Stability:** DPO is essentially a classification task (minimize loss on winning response, maximize loss on losing response), which is as stable as SFT.
+
+### 2.2 Implementation Details
+
+**Reference Model:** Frozen copy of the SFT model
+
+**Beta (β):** 0.1
+- **Why?** Beta controls the KL-divergence penalty. A high beta (0.5) forces the model to stay very close to the SFT model (little change). A low beta (0.05) allows wild deviation (risk of mode collapse). 0.1 is the industry standard sweet spot.
+
+**Memory Hack:** Offload Reference Model to CPU
+- **Why?** DPO doubles memory usage (2 models). Since the Reference Model doesn't need gradients, we compute its log-probs once per batch and discard them, or keep it in slow CPU RAM since it's not the bottleneck.
+
+## 3. Evaluation Suite (The "Truth" Check)
+
+### 3.1 N-gram Decontamination
+
+**Process:** Before training, check 13-gram overlaps between Training Data and Test Sets (MMLU/GSM8K). Remove contaminated samples.
+
+**Why?** If the model memorizes the specific phrasing of a test question from the web, the benchmark score is invalid. "Cheating" models look smart but fail in production.
+
+### 3.2 Reasoning Eval (GSM8K)
+
+**Method:** Evaluate the Process, not just the Answer.
+
+**Why?** A model might guess "42" and get it right. We parse the `<|start_thought|>` block to ensure the derivation steps are mathematically sound.
