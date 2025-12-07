@@ -30,7 +30,9 @@ env/
 .ipynb_checkpoints
 
 # IDEs
-.vscode/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
 .idea/
 *.swp
 *.swo

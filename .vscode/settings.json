@@ -1,0 +1,34 @@
+{
+  // Exclude dataset cache and large files from VS Code file explorer
+  "files.exclude": {
+    "**/nanollama/data/cache": true,
+    "**/nanollama/data/logs": true,
+    "**/nanollama/checkpoints": true,
+    "**/nanollama/logs": true,
+    "**/__pycache__": true,
+    "**/.cache": true,
+    "**/wandb": true
+  },
+
+  // Also exclude from search
+  "search.exclude": {
+    "**/nanollama/data/cache": true,
+    "**/nanollama/data/logs": true,
+    "**/nanollama/checkpoints": true,
+    "**/nanollama/logs": true,
+    "**/__pycache__": true,
+    "**/.cache": true,
+    "**/wandb": true
+  },
+
+  // Exclude from file watcher (improves performance)
+  "files.watcherExclude": {
+    "**/nanollama/data/cache/**": true,
+    "**/nanollama/data/logs/**": true,
+    "**/nanollama/checkpoints/**": true,
+    "**/nanollama/logs/**": true,
+    "**/__pycache__/**": true,
+    "**/.cache/**": true,
+    "**/wandb/**": true
+  }
+}
