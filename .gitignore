@@ -1,0 +1,91 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# macOS
+.DS_Store
+
+# Dataset cache (CRITICAL - exclude all datasets)
+nanollama/data/cache/
+nanollama/data/logs/
+*.arrow
+*.parquet
+
+# Model checkpoints (large files)
+nanollama/checkpoints/
+nanollama/models/checkpoints/
+
+# Logs
+nanollama/logs/
+*.log
+nohup.out
+
+# Results
+nanollama/results/*.json
+nanollama/results/*.csv
+nanollama/results/*.png
+nanollama/results/*.pdf
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# Weights & Biases
+wandb/
+
+# HuggingFace cache
+.cache/
+hf_cache/
+
+# Large model files
+*.bin
+*.safetensors
+*.ckpt
+*.pth
+*.pt
+
+# GGUF files (quantized models)
+*.gguf
+
+# Keep empty directories but not their contents
+nanollama/checkpoints/.gitkeep
+nanollama/logs/.gitkeep
+nanollama/results/.gitkeep
+
+# Keep specific marker files
+!nanollama/data/fineweb_edu_validation.txt
